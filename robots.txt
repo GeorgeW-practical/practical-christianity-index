@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://georgew-practical.github.io/practical-christianity-index/sitemap.xml
+
