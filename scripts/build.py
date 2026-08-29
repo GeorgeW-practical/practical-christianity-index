@@ -83,9 +83,10 @@ def build_index_html(rows):
     for r in rows:
         tier_label = "Paid" if r["tier"] == "paid" else "Free"
         passage_html = f'<span class="passage">{esc(r["passage"])}</span>' if r.get("passage") else ""
+        search_blob = esc(f"{r['title']} {r.get('passage','')} {r['teaser']}".lower())
         rows_html.append(
             f"""
-      <li class="entry">
+      <li class="entry" data-search="{search_blob}">
         <a class="title" href="{esc(r['url'])}">{esc(r['title'])}</a>
         {passage_html}
         <span class="tier tier-{r['tier']}">{tier_label}</span>
@@ -111,6 +112,9 @@ def build_index_html(rows):
   .teaser { margin: 0.35rem 0 0.15rem; color: #333; }
   .date { font-size: 0.8rem; color: #888; }
   footer { margin-top: 3rem; font-size: 0.85rem; color: #888; }
+  #search { width: 100%; box-sizing: border-box; font-size: 1rem; padding: 0.6rem 0.75rem; margin: 1rem 0; border: 1px solid #999; border-radius: 4px; }
+  #count { font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
+  li.entry[hidden] { display: none; }
 """
 
     body_html = f"""<!doctype html>
@@ -137,12 +141,33 @@ def build_index_html(rows):
   <p class="sub">Full publication: <a href="{SUBSTACK_URL}">{SUBSTACK_URL}</a> &middot; Machine-readable overview: <a href="llms.txt">llms.txt</a></p>
 </header>
 <main>
-  <ul class="entries">{''.join(rows_html)}
+  <input id="search" type="search" placeholder="Search by title, passage, or keyword&hellip;" autocomplete="off">
+  <p id="count"></p>
+  <ul class="entries" id="entries">{''.join(rows_html)}
   </ul>
 </main>
 <footer>
-  <p>Generated {today} from {len(rows)} indexed devotionals. This index currently covers a seed batch of the archive; more entries are added over time. Content on Substack is published by {AUTHOR}.</p>
+  <p>Generated {today} from {len(rows)} indexed devotionals, covering the full published archive as of this build. Content on Substack is published by {AUTHOR}.</p>
 </footer>
+<script>
+(function () {{
+  var input = document.getElementById('search');
+  var items = Array.prototype.slice.call(document.querySelectorAll('#entries li.entry'));
+  var count = document.getElementById('count');
+  function render() {{
+    var q = input.value.trim().toLowerCase();
+    var shown = 0;
+    items.forEach(function (li) {{
+      var match = !q || li.getAttribute('data-search').indexOf(q) !== -1;
+      li.hidden = !match;
+      if (match) shown++;
+    }});
+    count.textContent = shown + ' of ' + items.length + ' devotionals';
+  }}
+  input.addEventListener('input', render);
+  render();
+}})();
+</script>
 </body>
 </html>
 """
@@ -202,4 +227,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
